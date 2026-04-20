@@ -120,6 +120,7 @@
           that such additional attribution notices cannot be construed
           as modifying the License.
 
+<<<<<<< HEAD
       You may add Your own copyright statement to Your modifications and
       may provide additional or different license terms and conditions
       for use, reproduction, or distribution of Your modifications, or
@@ -127,13 +128,18 @@
       reproduction, and distribution of the Work otherwise complies with
       the conditions stated in this License.
 
+=======
+>>>>>>> 3b6984c (Add Apache-2.0 license and update gitignore)
    5. Submission of Contributions. Unless You explicitly state otherwise,
       any Contribution intentionally submitted for inclusion in the Work
       by You to the Licensor shall be under the terms and conditions of
       this License, without any additional terms or conditions.
+<<<<<<< HEAD
       Notwithstanding the above, nothing herein shall supersede or modify
       the terms of any separate license agreement you may have executed
       with Licensor regarding such Contributions.
+=======
+>>>>>>> 3b6984c (Add Apache-2.0 license and update gitignore)
 
    6. Trademarks. This License does not grant permission to use the trade
       names, trademarks, service marks, or product names of the Licensor,
@@ -146,9 +152,13 @@
       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
       implied, including, without limitation, any warranties or conditions
       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+<<<<<<< HEAD
       PARTICULAR PURPOSE. You are solely responsible for determining the
       appropriateness of using or redistributing the Work and assume any
       risks associated with Your exercise of permissions under this License.
+=======
+      PARTICULAR PURPOSE.
+>>>>>>> 3b6984c (Add Apache-2.0 license and update gitignore)
 
    8. Limitation of Liability. In no event and under no legal theory,
       whether in tort (including negligence), contract, or otherwise,

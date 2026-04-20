@@ -206,17 +206,26 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 benchmark_results/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Logs
+*.log
+*.bag
+*.db3
 
 # ROS 2 / colcon
+build/
 install/
 log/
 
-# Editors
+# Editors / OS
 .vscode/
 .idea/
 *.swp
-
-# OS
 .DS_Store
