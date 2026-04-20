@@ -1,0 +1,21 @@
+<?xml version='1.0' ?>
+
+<launch>
+  <arg name="use_sim_time" default="false"/>
+
+  <!-- 与 warehouse.launch.xml 相同，但使用派生地图 warehouse_perf（原版见 maps/warehouse/） -->
+  <include file="$(find-pkg-share rmf_demos)/common.launch.xml">
+    <arg name="use_sim_time" value="$(var use_sim_time)"/>
+    <arg name="viz_config_file" value ="$(find-pkg-share rmf_demos)/include/office/office.rviz"/>
+    <arg name="config_file" value="$(find-pkg-share rmf_demos_maps)/warehouse_perf/warehouse_perf.building.yaml"/>
+  </include>
+
+  <group>
+    <include file="$(find-pkg-share rmf_demos_fleet_adapter)/launch/fleet_adapter.launch.xml">
+      <arg name="use_sim_time" value="$(var use_sim_time)"/>
+      <arg name="nav_graph_file" value="$(find-pkg-share rmf_demos_maps)/maps/warehouse_perf/nav_graphs/0.yaml" />
+      <arg name="config_file" value="$(find-pkg-share rmf_demos)/config/warehouse/tinyRobot_config.yaml"/>
+    </include>
+  </group>
+
+</launch>

@@ -1,0 +1,26 @@
+{
+  "category": "compose",
+  "description": {
+    "category": "warehouse_r3",
+    "detail": "goal_C1 -> goal_W2",
+    "phases": [
+      {
+        "activity": {
+          "category": "go_to_place",
+          "description": {
+            "one_of": [{ "waypoint": "goal_C1" }]
+          }
+        }
+      },
+      {
+        "activity": {
+          "category": "go_to_place",
+          "description": {
+            "one_of": [{ "waypoint": "goal_W2" }]
+          }
+        }
+      }
+    ]
+  },
+  "requester": "rmf_demos_tasks"
+}

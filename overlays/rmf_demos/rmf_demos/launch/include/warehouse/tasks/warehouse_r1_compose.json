@@ -1,0 +1,42 @@
+{
+  "category": "compose",
+  "description": {
+    "category": "warehouse_r1",
+    "detail": "goal_A4 -> goal_W1 -> goal_D1 -> goal_W1",
+    "phases": [
+      {
+        "activity": {
+          "category": "go_to_place",
+          "description": {
+            "one_of": [{ "waypoint": "goal_A4" }]
+          }
+        }
+      },
+      {
+        "activity": {
+          "category": "go_to_place",
+          "description": {
+            "one_of": [{ "waypoint": "goal_W1" }]
+          }
+        }
+      },
+      {
+        "activity": {
+          "category": "go_to_place",
+          "description": {
+            "one_of": [{ "waypoint": "goal_D1" }]
+          }
+        }
+      },
+      {
+        "activity": {
+          "category": "go_to_place",
+          "description": {
+            "one_of": [{ "waypoint": "goal_W1" }]
+          }
+        }
+      }
+    ]
+  },
+  "requester": "rmf_demos_tasks"
+}
