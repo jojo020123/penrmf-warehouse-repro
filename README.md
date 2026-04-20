@@ -1,43 +1,46 @@
 # Open-RMF Warehouse Repro Pack
 
-本仓库用于**复现论文中 warehouse / warehouse_perf 的 Open-RMF 仿真实验**。它不包含 Open-RMF 上游源码本体，而是提供：
+This repository is a **reproducibility pack** for the Open-RMF simulation experiments
+(`warehouse` / `warehouse_perf`) reported in the thesis. It does **not** bundle upstream
+Open-RMF source code; instead, it provides:
 
-- **overlay 工件**：地图(`*.building.yaml` + 底图 PNG)、launch、fleet config、task JSON
-- **benchmark 脚本**：任务注入 + 指标统计（输出 JSON）
-- **一键安装脚本**：把 overlay 覆盖到你 clone 下来的 `rmf_ws/src/` 中
+- **Overlay artefacts**: maps (`*.building.yaml` + reference PNG), launch files, fleet config, task JSONs
+- **Benchmark scripts**: task injection + metric aggregation (JSON outputs)
+- **One-step overlay installer**: copies the overlay into your local `rmf_ws/src/` checkout
 
-许可协议：Apache License 2.0（见 `LICENSE`）。
+License: Apache License 2.0 (see `LICENSE`).
 
-## 上游版本（论文中引用）
+## Upstream versions (as referenced in the thesis)
 
 - `open-rmf/rmf`: tag `release-jazzy-240617` (commit `6aeae8db7256ef10fae785adae2e430f90f3f27e`)
 - `open-rmf/rmf_demos`: tag `2.0.3` (commit `9c6eb30295c5716abbb0d30f0d8ddace348ee244`)
 
-## 快速复现（推荐工作流）
+## Quick reproduction (recommended workflow)
 
-### 1) 创建工作区并拉取上游
+### 1) Create a workspace and clone upstream repositories
 
 ```bash
 mkdir -p ~/rmf_ws/src
 cd ~/rmf_ws/src
 
-# 上游 demos（世界/launch）
+# Upstream demos (worlds / launch files)
 git clone https://github.com/open-rmf/rmf_demos.git -b 2.0.3
 
-# 上游 rmf（Jazzy release）
+# Upstream rmf (ROS 2 Jazzy release)
 git clone https://github.com/open-rmf/rmf.git -b release-jazzy-240617
 ```
 
-> 如果你已经有自己的 `rmf_ws`，也可以跳过此步骤，但请确保版本与论文一致。
+> If you already have your own `rmf_ws`, you may skip this step, but make sure the versions
+> match those used in the thesis.
 
-### 2) 应用 overlay（把本仓库内容覆盖到 rmf_demos）
+### 2) Apply the overlay (copy this pack into `rmf_demos`)
 
 ```bash
 cd /path/to/openrmf-warehouse-repro
 python3 tools/apply_overlay.py --rmf-ws ~/rmf_ws
 ```
 
-### 3) 编译
+### 3) Build
 
 ```bash
 cd ~/rmf_ws
@@ -45,7 +48,7 @@ colcon build
 source install/setup.bash
 ```
 
-### 4) 跑 benchmark（生成表格所需 JSON）
+### 4) Run the benchmark (generate JSONs for the tables)
 
 ```bash
 python3 /path/to/openrmf-warehouse-repro/scripts/warehouse_benchmark.py \
@@ -61,11 +64,11 @@ python3 /path/to/openrmf-warehouse-repro/scripts/warehouse_benchmark.py \
   --results-dir benchmark_results/warehouse_perf
 ```
 
-输出汇总文件为：
+The aggregated output file is:
 
 - `<results-dir>/warehouse_benchmark_results.json`
 
-### 5)（可选）离线统计终端日志计数
+### 5) (Optional) Offline log keyword counting
 
 ```bash
 python3 /path/to/openrmf-warehouse-repro/scripts/rmf_traffic_log_stats.py /tmp/fleet_adapter.log
