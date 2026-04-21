@@ -1,0 +1,14 @@
+<?xml version='1.0' ?>
+<launch>
+  <!-- Task dispatch only: start Gazebo first, e.g. ros2 launch rmf_demos_gz warehouse.launch.xml or warehouse_perf.launch.xml -->
+  <!-- Patrol -n 1: single pass (rounds=1). Same file for 未扩张简易(warehouse) 与 未扩展精修(warehouse_perf), 3 robots. -->
+  <executable
+    cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_patrol_r1 -- -p start_R1 goal_A4 goal_W1 goal_D1 goal_W1 start_R1 -n 1 -F tinyRobot -R tinyRobot1 --use_sim_time"
+    output="both"/>
+  <executable
+    cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_patrol_r2 -- -p start_R2 goal_A3 goal_W3 start_R2 -n 1 -F tinyRobot -R tinyRobot2 --use_sim_time"
+    output="both"/>
+  <executable
+    cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_patrol_r3 -- -p start_R3 goal_C1 goal_W2 start_R3 -n 1 -F tinyRobot -R tinyRobot3 --use_sim_time"
+    output="both"/>
+</launch>

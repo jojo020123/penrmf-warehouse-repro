@@ -31,8 +31,32 @@ from rmf_task_msgs.msg import ApiResponse
 from rmf_task_msgs.msg import TaskSummary
 
 
-ROBOTS = ("tinyRobot1", "tinyRobot2", "tinyRobot3")
 FLEET_NAME = "tinyRobot"
+
+BASE_ROBOTS = ("tinyRobot1", "tinyRobot2", "tinyRobot3")
+EXTENSION_ROBOTS = (
+    "tinyRobot1",
+    "tinyRobot2",
+    "tinyRobot3",
+    "tinyRobot4",
+    "tinyRobot5",
+)
+
+# 与 rmf_demos patrol launch 中 stagger 一致（仿真秒，自 benchmark 开始起算）
+EXTENSION_DISPATCH_DELAY_SEC: dict[str, float] = {
+    "tinyRobot1": 0.0,
+    "tinyRobot2": 5.0,
+    "tinyRobot3": 10.0,
+    "tinyRobot4": 20.0,
+    "tinyRobot5": 30.0,
+}
+
+FOUR_WAREHOUSE_CAMPAIGN_WORLDS = (
+    "warehouse",
+    "warehouse_perf",
+    "warehouse_extension",
+    "warehouse_perf_extension",
+)
 NUMERIC_SUMMARY_FIELDS = (
     "accepted_tasks",
     "completed_tasks",
@@ -56,83 +80,86 @@ TERMINAL_STATES = {
     TaskSummary.STATE_CANCELED,
 }
 
-TASK_TEMPLATES: dict[str, dict[str, Any]] = {
-    "tinyRobot1": {
+def make_compose_task(category: str, waypoints: list[str]) -> dict[str, Any]:
+    """与 dispatch_patrol 单圈路径一致的 compose 任务（多段 go_to_place）。"""
+    return {
         "category": "compose",
         "description": {
-            "category": "warehouse_r1",
-            "detail": "goal_A4 -> goal_W1 -> goal_D1 -> goal_W1",
+            "category": category,
+            "detail": " -> ".join(waypoints),
             "phases": [
                 {
                     "activity": {
                         "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_A4"}]},
+                        "description": {"one_of": [{"waypoint": w}]},
                     }
-                },
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_W1"}]},
-                    }
-                },
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_D1"}]},
-                    }
-                },
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_W1"}]},
-                    }
-                },
+                }
+                for w in waypoints
             ],
         },
-    },
-    "tinyRobot2": {
-        "category": "compose",
-        "description": {
-            "category": "warehouse_r2",
-            "detail": "goal_A3 -> goal_W3",
-            "phases": [
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_A3"}]},
-                    }
-                },
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_W3"}]},
-                    }
-                },
-            ],
-        },
-    },
-    "tinyRobot3": {
-        "category": "compose",
-        "description": {
-            "category": "warehouse_r3",
-            "detail": "goal_C1 -> goal_W2",
-            "phases": [
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_C1"}]},
-                    }
-                },
-                {
-                    "activity": {
-                        "category": "go_to_place",
-                        "description": {"one_of": [{"waypoint": "goal_W2"}]},
-                    }
-                },
-            ],
-        },
-    },
+    }
+
+
+# 未扩张简易 / 未扩展精修：三台机器人，与 warehouse_patrol 路径一致
+TASK_TEMPLATES_BASE: dict[str, dict[str, Any]] = {
+    "tinyRobot1": make_compose_task(
+        "warehouse_r1", ["goal_A4", "goal_W1", "goal_D1", "goal_W1"]
+    ),
+    "tinyRobot2": make_compose_task("warehouse_r2", ["goal_A3", "goal_W3"]),
+    "tinyRobot3": make_compose_task("warehouse_r3", ["goal_C1", "goal_W2"]),
 }
+
+# 扩展简易 / 扩展精修：五台机器人，与 *_extension_patrol 路径一致
+TASK_TEMPLATES_EXTENSION: dict[str, dict[str, Any]] = {
+    "tinyRobot1": make_compose_task(
+        "warehouse_ext_r1", ["goal_A3", "goal_W1", "goal_F4", "goal_W5"]
+    ),
+    "tinyRobot2": make_compose_task("warehouse_ext_r2", ["goal_B2", "goal_W2"]),
+    "tinyRobot3": make_compose_task("warehouse_ext_r3", ["goal_C1", "goal_W3"]),
+    "tinyRobot4": make_compose_task("warehouse_ext_r4", ["goal_D4", "goal_W4"]),
+    "tinyRobot5": make_compose_task("warehouse_ext_r5", ["goal_E1", "goal_W5"]),
+}
+
+_DELAY_NONE: dict[str, float] = {r: 0.0 for r in BASE_ROBOTS}
+
+
+@dataclass(frozen=True)
+class WorldProfile:
+    world: str
+    label_zh: str
+    robots: tuple[str, ...]
+    task_templates: dict[str, dict[str, Any]]
+    dispatch_delay_sec: dict[str, float]
+
+
+def get_world_profile(world: str) -> WorldProfile:
+    if world in ("warehouse", "warehouse_perf"):
+        label = (
+            "未扩展简易 (warehouse)"
+            if world == "warehouse"
+            else "未扩展精修 (warehouse_perf)"
+        )
+        return WorldProfile(
+            world=world,
+            label_zh=label,
+            robots=BASE_ROBOTS,
+            task_templates=TASK_TEMPLATES_BASE,
+            dispatch_delay_sec=_DELAY_NONE,
+        )
+    if world in ("warehouse_extension", "warehouse_perf_extension"):
+        label = (
+            "扩展简易 (warehouse_extension)"
+            if world == "warehouse_extension"
+            else "扩展精修 (warehouse_perf_extension)"
+        )
+        return WorldProfile(
+            world=world,
+            label_zh=label,
+            robots=EXTENSION_ROBOTS,
+            task_templates=TASK_TEMPLATES_EXTENSION,
+            dispatch_delay_sec=dict(EXTENSION_DISPATCH_DELAY_SEC),
+        )
+    raise ValueError(f"未知 world: {world}")
 
 
 @dataclass
@@ -209,6 +236,7 @@ class WarehouseBenchmark(Node):
         self,
         *,
         world: str,
+        profile: WorldProfile,
         tasks_per_robot: int,
         startup_timeout: float,
         benchmark_timeout: float,
@@ -222,12 +250,16 @@ class WarehouseBenchmark(Node):
         )
 
         self.world = world
+        self.profile = profile
+        self.robots = profile.robots
+        self.task_templates = profile.task_templates
+        self.dispatch_delay_sec = profile.dispatch_delay_sec
         self.tasks_per_robot = tasks_per_robot
         self.startup_timeout = startup_timeout
         self.benchmark_timeout = benchmark_timeout
         self.max_sim_duration = max_sim_duration
         self.verbose = verbose
-        self.total_target_tasks = tasks_per_robot * len(ROBOTS)
+        self.total_target_tasks = tasks_per_robot * len(self.robots)
 
         self.control_period = 0.5
         # Thesis metric definitions (§6.6.1):
@@ -243,13 +275,13 @@ class WarehouseBenchmark(Node):
         self.response_timeout_wall = 15.0
 
         self.ready_robots: set[str] = set()
-        self.robot_trackers = {robot: RobotTracker() for robot in ROBOTS}
+        self.robot_trackers = {robot: RobotTracker() for robot in self.robots}
 
         self.pending_requests: dict[str, PendingRequest] = {}
         self.pending_by_robot: dict[str, str] = {}
         self.task_records: dict[str, TaskRecord] = {}
-        self.tasks_accepted_per_robot = {robot: 0 for robot in ROBOTS}
-        self.tasks_terminal_per_robot = {robot: 0 for robot in ROBOTS}
+        self.tasks_accepted_per_robot = {robot: 0 for robot in self.robots}
+        self.tasks_terminal_per_robot = {robot: 0 for robot in self.robots}
 
         self.total_busy_time = 0.0
         self.total_waiting_time = 0.0
@@ -320,7 +352,7 @@ class WarehouseBenchmark(Node):
             and self.count_publishers("task_api_responses") > 0
             and self.count_publishers("task_summaries") > 0
             and self.count_publishers("/fleet_states") > 0
-            and len(self.ready_robots) == len(ROBOTS)
+            and len(self.ready_robots) == len(self.robots)
         )
 
     def readiness_status(self) -> str:
@@ -329,7 +361,7 @@ class WarehouseBenchmark(Node):
             f"pub(task_api_responses)={self.count_publishers('task_api_responses')} "
             f"pub(task_summaries)={self.count_publishers('task_summaries')} "
             f"pub(/fleet_states)={self.count_publishers('/fleet_states')} "
-            f"ready_robots={len(self.ready_robots)}/{len(ROBOTS)}"
+            f"ready_robots={len(self.ready_robots)}/{len(self.robots)}"
         )
 
     def record_progress(self, now: float, reason: str) -> None:
@@ -562,8 +594,8 @@ class WarehouseBenchmark(Node):
                 "unix_millis_request_time": now_ms,
                 "unix_millis_earliest_start_time": now_ms,
                 "requester": requester,
-                "category": TASK_TEMPLATES[robot]["category"],
-                "description": TASK_TEMPLATES[robot]["description"],
+                "category": self.task_templates[robot]["category"],
+                "description": self.task_templates[robot]["description"],
                 "fleet_name": FLEET_NAME,
             },
         }
@@ -632,7 +664,7 @@ class WarehouseBenchmark(Node):
         # Rule (ii): any robot stays in WAITING-for-traffic for >= 120s.
         any_robot_waiting_too_long = False
         longest_waiting = 0.0
-        for robot in ROBOTS:
+        for robot in self.robots:
             tracker = self.robot_trackers[robot]
             if tracker.waiting_mode_since is None:
                 continue
@@ -708,7 +740,11 @@ class WarehouseBenchmark(Node):
         if self.done:
             return
 
-        for robot in ROBOTS:
+        start_sim = self.benchmark_start_sim_time
+        for robot in self.robots:
+            delay = self.dispatch_delay_sec.get(robot, 0.0)
+            if start_sim is not None and (now_sim - start_sim) < delay:
+                continue
             if self.should_dispatch(robot):
                 self.dispatch_task(robot)
 
@@ -772,7 +808,7 @@ class WarehouseBenchmark(Node):
 
         # Throughput: tasks completed per robot per hour of simulated time (tasks/h/robot)
         throughput_tasks_per_h_per_robot = (
-            (completed_tasks / (elapsed / 3600.0) / len(ROBOTS))
+            (completed_tasks / (elapsed / 3600.0) / len(self.robots))
             if elapsed > 0.0
             else 0.0
         )
@@ -803,6 +839,8 @@ class WarehouseBenchmark(Node):
 
         return {
             "world": self.world,
+            "layout_label_zh": self.profile.label_zh,
+            "num_robots": len(self.robots),
             "tasks_per_robot": self.tasks_per_robot,
             "total_target_tasks": self.total_target_tasks,
             "accepted_tasks": accepted_tasks,
@@ -936,8 +974,10 @@ def run_single_world(
             )
         time.sleep(2.0)
 
+    profile = get_world_profile(world)
     node = WarehouseBenchmark(
         world=world,
+        profile=profile,
         tasks_per_robot=tasks_per_robot,
         startup_timeout=startup_timeout,
         benchmark_timeout=benchmark_timeout,
@@ -1016,6 +1056,12 @@ def compute_mean_std(values: list[float]) -> dict[str, float]:
 
 
 def compute_summary(values: list[float]) -> dict[str, float]:
+    """Per-metric summary over runs: mean, std, median, Q1/Q3 (inclusive quartiles).
+
+    If there are fewer than four run-level samples, Q1 and Q3 fall back to the
+    minimum and maximum of the sorted values (see Python ``statistics.quantiles``
+    behaviour for small samples).
+    """
     if not values:
         return {
             "mean": 0.0,
@@ -1048,8 +1094,10 @@ def aggregate_world_runs(world: str, runs: list[dict[str, Any]]) -> dict[str, An
         field: compute_summary([float(run[field]) for run in runs])
         for field in NUMERIC_SUMMARY_FIELDS
     }
+    label_zh = runs[0].get("layout_label_zh", world) if runs else world
     return {
         "world": world,
+        "layout_label_zh": label_zh,
         "run_count": len(runs),
         "runs_terminated_early_due_to_deadlock": sum(
             1 for run in runs if run["terminated_early_due_to_deadlock"]
@@ -1081,31 +1129,114 @@ def format_aggregate_result(aggregate: dict[str, Any]) -> str:
     )
 
 
+def _fmt_mean_pm_std(summary: dict[str, dict[str, float]], key: str, decimals: int) -> str:
+    s = summary[key]
+    return f"{s['mean']:.{decimals}f} ± {s['std']:.{decimals}f}"
+
+
+def print_metrics_table(aggregated_worlds: list[dict[str, Any]]) -> None:
+    """论文风格指标表：均值 ± 标准差。"""
+    print("\n=== 汇总指标 (mean ± std) ===\n")
+    header = (
+        f"{'Layout':<42} | {'Tasks compl. (%)':>18} | {'Throughput (t/h/r)':>20} | "
+        f"{'Deadl./100':>14} | {'Task time (s)':>16} | {'Traffic-wait (%)':>16} | "
+        f"{'Waiting (s)':>14}"
+    )
+    print(header)
+    print("-" * len(header))
+    for agg in aggregated_worlds:
+        label = agg.get("layout_label_zh", agg["world"])
+        summ = agg["summary"]
+        line = (
+            f"{label:<42} | "
+            f"{_fmt_mean_pm_std(summ, 'completion_rate_percent', 1):>18} | "
+            f"{_fmt_mean_pm_std(summ, 'throughput_tasks_per_h_per_robot', 2):>20} | "
+            f"{_fmt_mean_pm_std(summ, 'deadlock_frequency_per_100_tasks', 2):>14} | "
+            f"{_fmt_mean_pm_std(summ, 'average_task_time_sec', 2):>16} | "
+            f"{_fmt_mean_pm_std(summ, 'traffic_wait_fraction_percent', 1):>16} | "
+            f"{_fmt_mean_pm_std(summ, 'average_waiting_time_sec', 2):>14}"
+        )
+        print(line)
+    print()
+
+
+def _fmt_median_q123(summ: dict[str, dict[str, float]], key: str, decimals: int) -> str:
+    s = summ[key]
+    return (
+        f"{s['median']:.{decimals}f}; "
+        f"[{s['q1']:.{decimals}f}, {s['q3']:.{decimals}f}]"
+    )
+
+
+def print_quartiles_table(aggregated_worlds: list[dict[str, Any]]) -> None:
+    """Median and inclusive Q1/Q3 per metric (same fields as ``print_metrics_table``)."""
+    print("\n=== 分位数汇总 (median; [Q1, Q3]) — 与 JSON 内 worlds[].summary 一致 ===\n")
+    header = (
+        f"{'Layout':<42} | {'Tasks compl.':>28} | {'Throughput (t/h/r)':>32} | "
+        f"{'Deadl./100':>24} | {'Task time (s)':>28} | {'Traffic-wait (%)':>28} | "
+        f"{'Waiting (s)':>28}"
+    )
+    print(header)
+    print("-" * len(header))
+    for agg in aggregated_worlds:
+        label = agg.get("layout_label_zh", agg["world"])
+        summ = agg["summary"]
+        line = (
+            f"{label:<42} | "
+            f"{_fmt_median_q123(summ, 'completion_rate_percent', 1):>28} | "
+            f"{_fmt_median_q123(summ, 'throughput_tasks_per_h_per_robot', 2):>32} | "
+            f"{_fmt_median_q123(summ, 'deadlock_frequency_per_100_tasks', 2):>24} | "
+            f"{_fmt_median_q123(summ, 'average_task_time_sec', 2):>28} | "
+            f"{_fmt_median_q123(summ, 'traffic_wait_fraction_percent', 1):>28} | "
+            f"{_fmt_median_q123(summ, 'average_waiting_time_sec', 2):>28}"
+        )
+        print(line)
+    print()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Benchmark warehouse and warehouse_perf RMF worlds."
+        description=(
+            "RMF 仓库场景基准：按 compose 任务派发（非 patrol 节点）。"
+            "使用 --campaign four-warehouse-layouts 可对四种布局各重复若干次并汇总指标。"
+        )
+    )
+    parser.add_argument(
+        "--campaign",
+        choices=("none", "four-warehouse-layouts"),
+        default="none",
+        help=(
+            "four-warehouse-layouts：依次对 warehouse / warehouse_perf / "
+            "warehouse_extension / warehouse_perf_extension 跑满 repeats；"
+            "默认 repeats=10、tasks-per-robot=1（单轮不循环任务）。"
+        ),
     )
     parser.add_argument(
         "--world",
-        choices=["warehouse", "warehouse_perf"],
-        help="Only run one world.",
+        choices=[
+            "warehouse",
+            "warehouse_perf",
+            "warehouse_extension",
+            "warehouse_perf_extension",
+        ],
+        help="只跑单个 Gazebo world（与 rmf_demos_gz 中 launch 名一致）。",
     )
     parser.add_argument(
         "--all-worlds",
         action="store_true",
-        help="Run both warehouse and warehouse_perf sequentially.",
+        help="依次运行未扩展简易与未扩展精修 (warehouse, warehouse_perf)。",
     )
     parser.add_argument(
         "--tasks-per-robot",
         type=int,
-        default=34,
-        help="Number of targeted compose tasks dispatched to each robot.",
+        default=None,
+        help="每台机器人派发的 compose 任务个数。未指定时：四布局 campaign 默认为 1，否则为 34。",
     )
     parser.add_argument(
         "--repeats",
         type=int,
-        default=1,
-        help="Number of repeated trials for each selected world.",
+        default=None,
+        help="每个 world 的重复次数。未指定时：四布局 campaign 默认为 10，否则为 1。",
     )
     parser.add_argument(
         "--startup-timeout",
@@ -1141,31 +1272,65 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print detailed progress logs.",
     )
+    parser.add_argument(
+        "--print-quartiles",
+        action="store_true",
+        help=(
+            "在 mean±std 表之后额外打印 median 与 [Q1,Q3] 表；"
+            "这些值已写入 warehouse_benchmark_results.json 各 worlds[].summary 字段。"
+        ),
+    )
     args = parser.parse_args(argv)
 
-    if not args.all_worlds and not args.world:
-        parser.error("请使用 --world 或 --all-worlds")
-    if args.repeats < 1:
-        parser.error("--repeats 必须 >= 1")
-    if args.no_launch and args.repeats > 1:
-        parser.error("--no-launch 模式下不支持 --repeats > 1，因为脚本无法自动重置世界")
-    if args.no_launch and not args.world:
-        parser.error("--no-launch 模式下请显式指定 --world")
+    if args.campaign == "four-warehouse-layouts":
+        if args.world or args.all_worlds:
+            parser.error(
+                "--campaign four-warehouse-layouts 不能与 --world / --all-worlds 同时使用"
+            )
+        worlds = list(FOUR_WAREHOUSE_CAMPAIGN_WORLDS)
+        repeats = args.repeats if args.repeats is not None else 10
+        tasks_per_robot = (
+            args.tasks_per_robot if args.tasks_per_robot is not None else 1
+        )
+    elif args.world:
+        worlds = [args.world]
+        repeats = args.repeats if args.repeats is not None else 1
+        tasks_per_robot = (
+            args.tasks_per_robot if args.tasks_per_robot is not None else 34
+        )
+    elif args.all_worlds:
+        worlds = ["warehouse", "warehouse_perf"]
+        repeats = args.repeats if args.repeats is not None else 1
+        tasks_per_robot = (
+            args.tasks_per_robot if args.tasks_per_robot is not None else 34
+        )
+    else:
+        parser.error(
+            "请指定 --world、--all-worlds，或使用 --campaign four-warehouse-layouts"
+        )
 
-    worlds = [args.world] if args.world else ["warehouse", "warehouse_perf"]
+    if repeats < 1:
+        parser.error("repeats 必须 >= 1")
+    if tasks_per_robot < 1:
+        parser.error("tasks-per-robot 必须 >= 1")
+    if args.no_launch and repeats > 1:
+        parser.error("--no-launch 模式下不支持 repeats > 1，因为脚本无法自动重置世界")
+    if args.no_launch and len(worlds) != 1:
+        parser.error("--no-launch 模式下请只指定单个 --world")
+
     args.results_dir.mkdir(parents=True, exist_ok=True)
 
     rclpy.init(args=sys.argv)
     raw_results: list[dict[str, Any]] = []
     try:
-        for run_index in range(1, args.repeats + 1):
+        for run_index in range(1, repeats + 1):
             run_results_dir = args.results_dir / f"run_{run_index:03d}"
             run_results_dir.mkdir(parents=True, exist_ok=True)
             for world in worlds:
                 result = run_single_world(
                     world=world,
                     run_index=run_index,
-                    tasks_per_robot=args.tasks_per_robot,
+                    tasks_per_robot=tasks_per_robot,
                     startup_timeout=args.startup_timeout,
                     benchmark_timeout=args.benchmark_timeout,
                     max_sim_duration=args.max_sim_duration,
@@ -1185,10 +1350,16 @@ def main(argv: list[str] | None = None) -> int:
         aggregated_worlds.append(aggregate)
         print(format_aggregate_result(aggregate), flush=True)
 
+    print_metrics_table(aggregated_worlds)
+    if args.print_quartiles:
+        print_quartiles_table(aggregated_worlds)
+
     output = {
         "generated_at_unix": time.time(),
-        "tasks_per_robot": args.tasks_per_robot,
-        "repeats": args.repeats,
+        "campaign": args.campaign,
+        "tasks_per_robot": tasks_per_robot,
+        "repeats": repeats,
+        "worlds_order": worlds,
         "worlds": aggregated_worlds,
     }
     output_path = args.results_dir / "warehouse_benchmark_results.json"

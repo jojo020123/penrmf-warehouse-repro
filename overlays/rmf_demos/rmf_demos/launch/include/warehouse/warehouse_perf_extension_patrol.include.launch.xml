@@ -1,0 +1,39 @@
+<?xml version='1.0' ?>
+<launch>
+  <!-- Task dispatch only: start Gazebo first, e.g. ros2 launch rmf_demos_gz warehouse_perf_extension.launch.xml -->
+  <!-- Patrol -n 1 per robot (rounds=1). Stagger: r1 0s, r2 5s, r3 10s, r4 20s, r5 30s. -->
+
+  <!-- robot1: start -> A3 -> W1 -> F4 -> W5 -> start -->
+  <executable
+    cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_perf_ext_patrol_r1 -- -p start_R1 goal_A3 goal_W1 goal_F4 goal_W5 start_R1 -n 1 -F tinyRobot -R tinyRobot1 --use_sim_time"
+    output="both"/>
+
+  <!-- robot2: start -> B2 -> W2 -> start -->
+  <timer period="5.0">
+    <executable
+      cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_perf_ext_patrol_r2 -- -p start_R2 goal_B2 goal_W2 start_R2 -n 1 -F tinyRobot -R tinyRobot2 --use_sim_time"
+      output="both"/>
+  </timer>
+
+  <!-- robot3: start -> C1 -> W3 -> start -->
+  <timer period="10.0">
+    <executable
+      cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_perf_ext_patrol_r3 -- -p start_R3 goal_C1 goal_W3 start_R3 -n 1 -F tinyRobot -R tinyRobot3 --use_sim_time"
+      output="both"/>
+  </timer>
+
+  <!-- robot4: start -> D4 -> W4 -> start -->
+  <timer period="20.0">
+    <executable
+      cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_perf_ext_patrol_r4 -- -p start_R4 goal_D4 goal_W4 start_R4 -n 1 -F tinyRobot -R tinyRobot4 --use_sim_time"
+      output="both"/>
+  </timer>
+
+  <!-- robot5: start -> E1 -> W5 -> start -->
+  <timer period="30.0">
+    <executable
+      cmd="ros2 run rmf_demos_tasks dispatch_patrol --ros-args -r __node:=warehouse_perf_ext_patrol_r5 -- -p start_R5 goal_E1 goal_W5 start_R5 -n 1 -F tinyRobot -R tinyRobot5 --use_sim_time"
+      output="both"/>
+  </timer>
+
+</launch>

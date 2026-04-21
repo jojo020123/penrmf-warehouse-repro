@@ -1,0 +1,5 @@
+<?xml version='1.0' ?>
+<launch>
+  <!-- Entry point: patrol tasks for warehouse_perf_extension (5 robots, staggered). -->
+  <include file="$(find-pkg-share rmf_demos)/include/warehouse/warehouse_perf_extension_patrol.include.launch.xml"/>
+</launch>
